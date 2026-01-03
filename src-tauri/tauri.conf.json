@@ -1,0 +1,75 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "resonance-logs-cn",
+    "version": "0.0.1",
+    "identifier": "com.resonance-logs-cn",
+    "build": {
+        "beforeDevCommand": "npm run dev:stop-windivert",
+        "beforeBuildCommand": "npm run build:stop-windivert",
+        "devUrl": "http://localhost:1420",
+        "frontendDist": "../build"
+    },
+    "app": {
+        "windows": [
+            {
+                "title": "Resonance Logs CN - Live",
+                "label": "live",
+                "url": "live",
+                "shadow": false,
+                "decorations": false,
+                "transparent": true,
+                "minWidth": 410,
+                "minHeight": 120,
+                "alwaysOnTop": true,
+                "skipTaskbar": true
+            },
+            {
+                "title": "Resonance Logs CN - Main 0.0.1",
+                "label": "main",
+                "url": "main",
+                "width": 1200,
+                "height": 800,
+                "minWidth": 855,
+                "minHeight": 300,
+                "visible": false,
+                "transparent": true
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "copyright": "GNU Affero General Public License v3.0",
+        "targets": [
+            "nsis"
+        ],
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "resources": [
+            "./WinDivert.dll",
+            "./WinDivert64.sys",
+            "./meter-data/"
+        ],
+        "createUpdaterArtifacts": false
+    },
+    "plugins": {
+        "updater": {
+            "active": true,
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI5MEMwMEVCRjJDNDMyN0MKUldSOE1zVHk2d0FNS1Jlb0ZaUTdvQml4eFZOelZ6ZVU5T2lJT2t1VWVKcSs5L21oSFpWcitxb3IK",
+            "endpoints": [
+                "https://github.com/fudiyangjin/resonance-logs-cn/releases/latest/download/latest.json"
+            ],
+            "dialog": true,
+            "windows": {
+                "installMode": "basicUi"
+            }
+        }
+    }
+}
