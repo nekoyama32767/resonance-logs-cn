@@ -162,6 +162,10 @@
       id: "toggleBossHp",
       label: "切换 Boss 血量显示",
     },
+    {
+      id: "toggleOverlayEdit",
+      label: "切换遮罩编辑模式",
+    },
   ];
 </script>
 

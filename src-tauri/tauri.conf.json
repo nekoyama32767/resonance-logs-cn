@@ -35,29 +35,18 @@
                 "transparent": true
             },
             {
-                "title": "Skill CD Monitor",
-                "label": "skill-cd",
-                "url": "skill-cd",
+                "title": "Game Overlay",
+                "label": "game-overlay",
+                "url": "game-overlay",
                 "decorations": false,
                 "transparent": true,
                 "alwaysOnTop": true,
                 "skipTaskbar": true,
-                "width": 280,
-                "height": 160,
-                "visible": false
-            },
-            {
-                "title": "Buff Monitor",
-                "label": "buff-monitor",
-                "url": "buff-monitor",
-                "decorations": false,
-                "transparent": true,
-                "alwaysOnTop": true,
-                "skipTaskbar": true,
-                "width": 300,
-                "height": 160,
+                "width": 1280,
+                "height": 960,
                 "visible": false,
-                "shadow": true
+                "resizable": true,
+                "shadow": false
             }
         ],
         "security": {

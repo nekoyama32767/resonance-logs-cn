@@ -32,6 +32,9 @@
     return profiles[index];
   }
 
+  let lastMonitorSyncKey = "";
+  let lastOverlayVisibleState: boolean | null = null;
+
   $effect(() => {
     const enabled = SETTINGS.skillMonitor.state.enabled;
     const activeProfile = getActiveSkillMonitorProfile();
@@ -41,35 +44,36 @@
     const mergedBuffIds = Array.from(
       new Set([...monitoredBuffIds, ...getDefaultMonitoredBuffIds(selectedClass)]),
     );
+    const monitorSyncKey = JSON.stringify({
+      enabled,
+      monitoredSkillIds,
+      mergedBuffIds,
+    });
 
     void (async () => {
       try {
-        if (enabled) {
-          await commands.setMonitoredSkills(monitoredSkillIds);
-          await commands.setMonitoredBuffs(mergedBuffIds);
-        } else {
-          await commands.setMonitoredSkills([]);
-          await commands.setMonitoredBuffs([]);
-        }
-
-        const skillWindow = await WebviewWindow.getByLabel("skill-cd");
-        const buffWindow = await WebviewWindow.getByLabel("buff-monitor");
-
-        if (skillWindow) {
+        // Avoid spamming backend monitor commands when only overlay layout changes.
+        if (monitorSyncKey !== lastMonitorSyncKey) {
+          lastMonitorSyncKey = monitorSyncKey;
           if (enabled) {
-            await skillWindow.show();
-            await skillWindow.unminimize();
+            await commands.setMonitoredSkills(monitoredSkillIds);
+            await commands.setMonitoredBuffs(mergedBuffIds);
           } else {
-            await skillWindow.hide();
+            await commands.setMonitoredSkills([]);
+            await commands.setMonitoredBuffs([]);
           }
         }
 
-        if (buffWindow) {
-          if (enabled) {
-            await buffWindow.show();
-            await buffWindow.unminimize();
-          } else {
-            await buffWindow.hide();
+        const overlayWindow = await WebviewWindow.getByLabel("game-overlay");
+        if (overlayWindow) {
+          if (lastOverlayVisibleState !== enabled) {
+            lastOverlayVisibleState = enabled;
+            if (enabled) {
+              await overlayWindow.show();
+              await overlayWindow.unminimize();
+            } else {
+              await overlayWindow.hide();
+            }
           }
         }
       } catch (error) {

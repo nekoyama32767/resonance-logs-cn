@@ -1,8 +1,8 @@
 use crate::WINDOW_LIVE_LABEL;
-use crate::live::dungeon_log::{self, DungeonLogRuntime};
-use crate::live::state::{AppStateManager, StateEvent};
 use crate::database::{DbTask, enqueue, now_ms};
 use crate::live::commands_models::SkillCdState;
+use crate::live::dungeon_log::{self, DungeonLogRuntime};
+use crate::live::state::{AppStateManager, StateEvent};
 use log::{info, trace, warn};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -10,7 +10,6 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use window_vibrancy::{apply_blur, clear_blur};
 // request_restart is not needed in this module at present
 use crate::live::event_manager; // for generate_skills_window_*
-
 
 fn safe_emit<S: Serialize + Clone>(app_handle: &AppHandle, event: &str, payload: S) -> bool {
     // First check if the live window exists and is valid
@@ -29,7 +28,10 @@ fn safe_emit<S: Serialize + Clone>(app_handle: &AppHandle, event: &str, payload:
             let error_str = format!("{:?}", e);
             if error_str.contains("0x8007139F") || error_str.contains("not in the correct state") {
                 // Expected when windows are minimized/hidden - don't spam logs
-                trace!("WebView2 not ready for '{}' (window may be minimized/hidden)", event);
+                trace!(
+                    "WebView2 not ready for '{}' (window may be minimized/hidden)",
+                    event
+                );
             } else {
                 warn!("Failed to emit '{}': {}", event, e);
             }
@@ -409,7 +411,6 @@ pub async fn copy_sync_container_data(
 pub async fn reset_encounter(
     state_manager: tauri::State<'_, AppStateManager>,
 ) -> Result<(), String> {
-
     let state_manager = state_manager.inner().clone();
 
     // Perform the reset under the lock, but collect payloads to emit afterward.
@@ -426,7 +427,11 @@ pub async fn reset_encounter(
 
             enqueue(DbTask::EndEncounter {
                 ended_at_ms: now_ms(),
-                defeated_bosses: if defeated.is_empty() { None } else { Some(defeated) },
+                defeated_bosses: if defeated.is_empty() {
+                    None
+                } else {
+                    Some(defeated)
+                },
                 is_manually_reset: true,
                 encounter_data,
             });
@@ -519,53 +524,55 @@ pub async fn reset_player_metrics(
     // no emitting events while holding the AppState write lock.
     let state_manager = state_manager.inner().clone();
 
-    let (app_handle_opt, should_emit, active_segment_name, cleared_header, is_paused) = state_manager
-        .with_state_mut(|state| {
-            // Store the original fight start time before reset
-            let original_fight_start_ms = state.encounter.time_fight_start_ms;
+    let (app_handle_opt, should_emit, active_segment_name, cleared_header, is_paused) =
+        state_manager
+            .with_state_mut(|state| {
+                // Store the original fight start time before reset
+                let original_fight_start_ms = state.encounter.time_fight_start_ms;
 
-            // more segments legacy code
-            let active_segment_name = dungeon_log::snapshot(&state.dungeon_log).and_then(|log| {
-                log.segments
-                    .iter()
-                    .rev()
-                    .find(|s| s.ended_at_ms.is_none())
-                    .and_then(|s| s.boss_name.clone())
-            });
+                // more segments legacy code
+                let active_segment_name =
+                    dungeon_log::snapshot(&state.dungeon_log).and_then(|log| {
+                        log.segments
+                            .iter()
+                            .rev()
+                            .find(|s| s.ended_at_ms.is_none())
+                            .and_then(|s| s.boss_name.clone())
+                    });
 
-            // Reset combat state (player metrics only)
-            state.encounter.reset_combat_state();
-            state.skill_subscriptions.clear();
+                // Reset combat state (player metrics only)
+                state.encounter.reset_combat_state();
+                state.skill_subscriptions.clear();
 
-            // Restore the original fight start time to preserve total encounter duration
-            state.encounter.time_fight_start_ms = original_fight_start_ms;
+                // Restore the original fight start time to preserve total encounter duration
+                state.encounter.time_fight_start_ms = original_fight_start_ms;
 
-            let should_emit = state.event_manager.should_emit_events();
-            let app_handle_opt = state.event_manager.get_app_handle();
-            let is_paused = state.encounter.is_encounter_paused;
+                let should_emit = state.event_manager.should_emit_events();
+                let app_handle_opt = state.event_manager.get_app_handle();
+                let is_paused = state.encounter.is_encounter_paused;
 
-            // Emit an encounter update with cleared player data but preserve encounter context
-            let cleared_header = crate::live::commands_models::HeaderInfo {
-                total_dps: 0.0,
-                total_dmg: 0,
-                elapsed_ms: 0,
-                fight_start_timestamp_ms: state.encounter.time_fight_start_ms,
-                bosses: vec![],
-                scene_id: state.encounter.current_scene_id,
-                scene_name: state.encounter.current_scene_name.clone(),
-                current_segment_type: None,
-                current_segment_name: None,
-            };
+                // Emit an encounter update with cleared player data but preserve encounter context
+                let cleared_header = crate::live::commands_models::HeaderInfo {
+                    total_dps: 0.0,
+                    total_dmg: 0,
+                    elapsed_ms: 0,
+                    fight_start_timestamp_ms: state.encounter.time_fight_start_ms,
+                    bosses: vec![],
+                    scene_id: state.encounter.current_scene_id,
+                    scene_name: state.encounter.current_scene_name.clone(),
+                    current_segment_type: None,
+                    current_segment_name: None,
+                };
 
-            (
-                app_handle_opt,
-                should_emit,
-                active_segment_name,
-                cleared_header,
-                is_paused,
-            )
-        })
-        .await;
+                (
+                    app_handle_opt,
+                    should_emit,
+                    active_segment_name,
+                    cleared_header,
+                    is_paused,
+                )
+            })
+            .await;
 
     if should_emit {
         if let Some(app_handle) = app_handle_opt {
@@ -685,6 +692,34 @@ pub async fn get_available_buffs(
     Ok(buffs)
 }
 
+/// Searches buffs by name and returns matching entries, including no-icon buffs.
+#[tauri::command]
+#[specta::specta]
+pub async fn search_buffs_by_name(
+    keyword: String,
+    limit: Option<usize>,
+    _state_manager: tauri::State<'_, AppStateManager>,
+) -> Result<Vec<crate::live::commands_models::BuffNameInfo>, String> {
+    use crate::live::buff_names;
+    use crate::live::commands_models::BuffNameInfo;
+
+    let trimmed = keyword.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let max_limit = limit.unwrap_or(80).clamp(1, 300);
+    let result = buff_names::search_buffs_by_name(trimmed, max_limit)
+        .into_iter()
+        .map(|(base_id, entry)| BuffNameInfo {
+            base_id,
+            name: entry.name,
+            has_sprite_file: entry.sprite_file.is_some(),
+        })
+        .collect();
+    Ok(result)
+}
+
 /// Sets the monitored skill list for skill CD updates.
 #[tauri::command]
 #[specta::specta]
@@ -696,17 +731,14 @@ pub async fn set_monitored_skills(
         return Err("最多监控10个技能".to_string());
     }
 
-    info!(
-        "[skill-cd] set monitored skills: {:?}",
-        skill_level_ids
-    );
+    info!("[skill-cd] set monitored skills: {:?}", skill_level_ids);
 
     state_manager
         .with_state_mut(|state| {
             state.monitored_skill_ids = skill_level_ids;
-            state
-                .skill_cd_map
-                .retain(|skill_level_id, _| state.monitored_skill_ids.contains(&(skill_level_id / 100)));
+            state.skill_cd_map.retain(|skill_level_id, _| {
+                state.monitored_skill_ids.contains(&(skill_level_id / 100))
+            });
         })
         .await;
     Ok(())
@@ -715,28 +747,14 @@ pub async fn set_monitored_skills(
 #[tauri::command]
 #[specta::specta]
 pub async fn set_monitor_all_buff(
-        monitor_all_buff: bool,
-        state_manager: tauri::State<'_, AppStateManager>,) -> Result<(), String>
-{
-    info!(
-        "[monitor-buff] set monitorAllBuff: {:?}",
-        monitor_all_buff
-    );
+    monitor_all_buff: bool,
+    state_manager: tauri::State<'_, AppStateManager>,
+) -> Result<(), String> {
+    info!("[monitor-buff] set monitorAllBuff: {:?}", monitor_all_buff);
     state_manager
         .with_state_mut(|state| {
             state.monitor_all_buff = monitor_all_buff;
         })
         .await;
     Ok(())
-}
-
-/// Enables/disables shadow on the buff monitor window.
-#[tauri::command]
-#[specta::specta]
-pub fn toggle_buff_monitor_shadow(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    let w = app
-        .get_webview_window(crate::WINDOW_BUFF_MONITOR_LABEL)
-        .ok_or_else(|| "buff-monitor window not found".to_string())?;
-
-    w.set_shadow(enabled).map_err(|e| e.to_string())
 }

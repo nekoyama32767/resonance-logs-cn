@@ -1,67 +1,46 @@
 <script lang="ts">
-  /**
-   * @file Layout for the skill monitor tool.
-   * Contains the launch button for the skill CD window.
-   */
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import { emit } from "@tauri-apps/api/event";
   import SwordsIcon from "virtual:icons/lucide/swords";
   import ExternalLinkIcon from "virtual:icons/lucide/external-link";
   import PlayIcon from "virtual:icons/lucide/play";
-  import LayersIcon from "virtual:icons/lucide/layers";
-  import { invoke } from "@tauri-apps/api/core";
+  import PenSquareIcon from "virtual:icons/lucide/pen-square";
 
   let { children } = $props();
 
-  async function toggleSkillCdWindow() {
+  async function toggleOverlayWindow() {
     try {
-      const skillWindow = await WebviewWindow.getByLabel("skill-cd");
-      if (skillWindow !== null) {
-        const isVisible = await skillWindow.isVisible();
+      const overlayWindow = await WebviewWindow.getByLabel("game-overlay");
+      if (overlayWindow !== null) {
+        const isVisible = await overlayWindow.isVisible();
 
         if (isVisible) {
-          await skillWindow.hide();
+          await overlayWindow.hide();
         } else {
-          await skillWindow.show();
-          await skillWindow.unminimize();
-          await skillWindow.setFocus();
+          await overlayWindow.show();
+          await overlayWindow.unminimize();
+          await overlayWindow.setFocus();
         }
       } else {
-        console.warn("Skill CD window not found");
+        console.warn("Game overlay window not found");
       }
     } catch (err) {
-      console.error("Failed to toggle skill CD window:", err);
+      console.error("Failed to toggle overlay window:", err);
     }
   }
 
-  async function toggleBuffMonitorWindow() {
+  async function toggleOverlayEditMode() {
     try {
-      const buffWindow = await WebviewWindow.getByLabel("buff-monitor");
-      if (buffWindow !== null) {
-        const isVisible = await buffWindow.isVisible();
-
-        if (isVisible) {
-          await buffWindow.hide();
-        } else {
-          await buffWindow.show();
-          await buffWindow.unminimize();
-          await buffWindow.setFocus();
-        }
+      const overlayWindow = await WebviewWindow.getByLabel("game-overlay");
+      if (overlayWindow !== null) {
+        await emit("overlay-edit-toggle");
       } else {
-        console.warn("Buff monitor window not found");
+        console.warn("Game overlay window not found");
       }
-    } catch (err) {
-      console.error("Failed to toggle buff monitor window:", err);
+    } catch (error) {
+      console.error("Failed to toggle overlay edit mode", error);
     }
   }
-let shadowEnabled = $state(false);
- async function toggleBuffShadow() {
-    shadowEnabled = !shadowEnabled;
-    await invoke("toggle_buff_monitor_shadow", {
-      label: "buff-monitor",
-      enabled: shadowEnabled
-    });
-  }
-
 </script>
 
 <div class="space-y-6">
@@ -80,33 +59,24 @@ let shadowEnabled = $state(false);
       <button
         type="button"
         class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors shadow-sm"
-        onclick={toggleSkillCdWindow}
+        onclick={toggleOverlayWindow}
       >
         <PlayIcon class="w-4 h-4" />
-        <span>切换技能窗口</span>
+        <span>切换遮罩窗口</span>
         <ExternalLinkIcon class="w-3.5 h-3.5 opacity-70" />
       </button>
 
       <button
         type="button"
         class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border/60 bg-muted/30 text-foreground font-medium text-sm hover:bg-muted/50 transition-colors shadow-sm"
-        onclick={toggleBuffMonitorWindow}
+        onclick={toggleOverlayEditMode}
       >
-        <LayersIcon class="w-4 h-4" />
-        <span>切换 Buff 窗口</span>
+        <PenSquareIcon class="w-4 h-4" />
+        <span>编辑遮罩布局</span>
         <ExternalLinkIcon class="w-3.5 h-3.5 opacity-70" />
       </button>
     </div>
   </div>
-
- <button
-  type="button"
-  class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border/60 bg-muted/30 text-foreground font-medium text-sm hover:bg-muted/50 transition-colors shadow-sm"
-  onclick={toggleBuffShadow}
->
-  <LayersIcon class="w-4 h-4" />
-  <span>Buff 阴影: {shadowEnabled ? "ON" : "OFF"}</span>
-</button>
 
   <div class="min-h-0">
     {@render children()}

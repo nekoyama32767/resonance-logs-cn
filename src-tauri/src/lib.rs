@@ -29,10 +29,8 @@ use serde_json::json;
 pub const WINDOW_LIVE_LABEL: &str = "live";
 /// The label for the main window.
 pub const WINDOW_MAIN_LABEL: &str = "main";
-/// The label for the skill CD window.
-pub const WINDOW_SKILL_CD_LABEL: &str = "skill-cd";
-/// The label for the buff monitor window.
-pub const WINDOW_BUFF_MONITOR_LABEL: &str = "buff-monitor";
+/// The label for the unified game overlay window.
+pub const WINDOW_GAME_OVERLAY_LABEL: &str = "game-overlay";
 
 /// Keeps the non-blocking tracing appender worker alive for the lifetime of the process.
 /// If this guard is dropped, file logging may stop flushing.
@@ -69,7 +67,7 @@ pub fn run() {
             live::commands::set_monitored_skills,
             live::commands::set_monitored_buffs,
             live::commands::get_available_buffs,
-            live::commands::toggle_buff_monitor_shadow,
+            live::commands::search_buffs_by_name,
             live::commands::set_monitor_all_buff,
             database::commands::get_recent_encounters,
             database::commands::get_unique_scene_names,
@@ -183,11 +181,12 @@ pub fn run() {
                 let mut dump_content = String::new();
                 dump_content.push_str(&format!("Panic occurred: {}\n", info));
                 dump_content.push_str(&format!("Backtrace:\n{:?}\n", backtrace));
-                dump_content.push_str(&format!("OS: {} {}\n", std::env::consts::OS, std::env::consts::ARCH));
-                let log_dir = hook_app_handle
-                    .path()
-                    .app_log_dir()
-                    .ok();
+                dump_content.push_str(&format!(
+                    "OS: {} {}\n",
+                    std::env::consts::OS,
+                    std::env::consts::ARCH
+                ));
+                let log_dir = hook_app_handle.path().app_log_dir().ok();
 
                 if let Some(log_dir) = log_dir {
                     if let Err(e) = std::fs::create_dir_all(&log_dir) {
@@ -229,7 +228,8 @@ pub fn run() {
             app.manage(auto_upload_state.clone());
 
             // Player data sync state (separate from encounter uploads)
-            let player_data_sync_state = crate::uploader::player_data_sync::PlayerDataSyncState::default();
+            let player_data_sync_state =
+                crate::uploader::player_data_sync::PlayerDataSyncState::default();
             app.manage(player_data_sync_state.clone());
 
             crate::live::skill_monitor_init::init_skill_monitor_from_settings(
@@ -535,8 +535,8 @@ fn init_logging(app: &tauri::AppHandle) -> Result<(), String> {
         .or_else(|_| tracing_subscriber::EnvFilter::try_from_default_env())
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default_filter));
 
-    use tracing_subscriber::prelude::*;
     use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::prelude::*;
 
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(file_writer)
@@ -570,8 +570,8 @@ fn init_logging(app: &tauri::AppHandle) -> Result<(), String> {
 fn cleanup_old_logs(log_dir: &Path, keep: usize) -> Result<(), String> {
     let mut entries: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
 
-    let rd = std::fs::read_dir(log_dir)
-        .map_err(|e| format!("read_dir {}: {e}", log_dir.display()))?;
+    let rd =
+        std::fs::read_dir(log_dir).map_err(|e| format!("read_dir {}: {e}", log_dir.display()))?;
 
     for entry in rd {
         let entry = entry.map_err(|e| format!("read_dir entry: {e}"))?;
@@ -580,18 +580,15 @@ fn cleanup_old_logs(log_dir: &Path, keep: usize) -> Result<(), String> {
             continue;
         }
 
-        let file_name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("");
+        let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
         // Only prune our own log files. Keep crash dumps.
         if !file_name.starts_with("resonance-logs-cn_v") || file_name.contains("crash_dump") {
             continue;
         }
 
-        let meta = std::fs::metadata(&path)
-            .map_err(|e| format!("metadata {}: {e}", path.display()))?;
+        let meta =
+            std::fs::metadata(&path).map_err(|e| format!("metadata {}: {e}", path.display()))?;
         let modified = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
         entries.push((modified, path));
     }
@@ -609,8 +606,8 @@ fn create_diagnostics_bundle(
     app_handle: &tauri::AppHandle,
     destination_path: Option<String>,
 ) -> Result<String, String> {
-    use zip::write::FileOptions;
     use std::io::Write;
+    use zip::write::FileOptions;
 
     let log_dir = app_handle
         .path()
@@ -640,8 +637,8 @@ fn create_diagnostics_bundle(
 
     // Include only the most recent application log file.
     let mut files: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
-    for entry in std::fs::read_dir(&log_dir)
-        .map_err(|e| format!("read_dir {}: {e}", log_dir.display()))?
+    for entry in
+        std::fs::read_dir(&log_dir).map_err(|e| format!("read_dir {}: {e}", log_dir.display()))?
     {
         let entry = entry.map_err(|e| format!("read_dir entry: {e}"))?;
         let path = entry.path();
@@ -652,8 +649,8 @@ fn create_diagnostics_bundle(
         if !name.starts_with("resonance-logs-cn_v") || !name.ends_with(".log") {
             continue;
         }
-        let meta = std::fs::metadata(&path)
-            .map_err(|e| format!("metadata {}: {e}", path.display()))?;
+        let meta =
+            std::fs::metadata(&path).map_err(|e| format!("metadata {}: {e}", path.display()))?;
         let modified = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
         files.push((modified, path));
     }
@@ -669,8 +666,7 @@ fn create_diagnostics_bundle(
         .unwrap_or("resonance-logs-cn.log");
 
     // Avoid zipping extremely large files.
-    let meta = std::fs::metadata(&path)
-        .map_err(|e| format!("metadata {}: {e}", path.display()))?;
+    let meta = std::fs::metadata(&path).map_err(|e| format!("metadata {}: {e}", path.display()))?;
     const MAX_BYTES: u64 = 25 * 1024 * 1024;
     if meta.len() > MAX_BYTES {
         return Err(format!(

@@ -241,6 +241,38 @@ pub fn get_buffs_with_sprites() -> Vec<BuffSpriteEntry> {
     result
 }
 
+/// Searches buffs by name/talent name and returns matching base ids.
+pub fn search_buffs_by_name(keyword: &str, limit: usize) -> Vec<(i32, BuffNameEntry)> {
+    let needle = keyword.trim().to_lowercase();
+    if needle.is_empty() {
+        return Vec::new();
+    }
+
+    let cache = BUFF_CACHE.read();
+    let mut result: Vec<(i32, BuffNameEntry)> = cache
+        .iter()
+        .filter_map(|(id, entry)| {
+            let name_hit = entry.name.to_lowercase().contains(&needle);
+            let talent_hit = entry
+                .talent_name
+                .as_ref()
+                .map(|v| v.to_lowercase().contains(&needle))
+                .unwrap_or(false);
+            if name_hit || talent_hit {
+                Some((*id, entry.clone()))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    result.sort_by_key(|(id, _)| *id);
+    if result.len() > limit {
+        result.truncate(limit);
+    }
+    result
+}
+
 /// Returns related buff base ids for a given source config id.
 pub fn get_related_base_ids(source_config_id: i32) -> Vec<i32> {
     let map = TALENT_SOURCE_MAP.read();

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, type BuffDefinition } from "$lib/bindings";
+  import { commands, type BuffDefinition, type BuffNameInfo } from "$lib/bindings";
   import SettingsSwitch from "../dps/settings/settings-switch.svelte";
   import {
     createDefaultSkillMonitorProfile,
@@ -16,7 +16,9 @@
   } from "$lib/skill-mappings";
 
   let availableBuffs = $state<BuffDefinition[]>([]);
+  let buffNames = $state(new Map<number, BuffNameInfo>());
   let buffSearch = $state("");
+  let buffSearchResults = $state<BuffNameInfo[]>([]);
   let resonanceSearch = $state("");
   onMount(() => {
     void (async () => {
@@ -42,6 +44,12 @@
   const classSkills = $derived(getSkillsByClass(selectedClassKey));
   const monitoredSkillIds = $derived(activeProfile.monitoredSkillIds);
   const monitoredBuffIds = $derived(activeProfile.monitoredBuffIds);
+  const showSkillCdGroup = $derived(
+    activeProfile.overlayVisibility?.showSkillCdGroup ?? true,
+  );
+  const showResourceGroup = $derived(
+    activeProfile.overlayVisibility?.showResourceGroup ?? true,
+  );
 
   function updateActiveProfile(
     updater: (profile: SkillMonitorProfile) => SkillMonitorProfile,
@@ -170,11 +178,21 @@
   }
 
   const filteredBuffs = $derived.by(() => {
-    const keyword = buffSearch.trim().toLowerCase();
-    if (!keyword) return [];
-    return availableBuffs.filter((buff) =>
-      buff.searchKeywords.some((kw) => kw.toLowerCase().includes(keyword)),
-    );
+    const ids = new Set<number>();
+    const merged: BuffNameInfo[] = [];
+    for (const item of buffSearchResults) {
+      if (ids.has(item.baseId)) continue;
+      ids.add(item.baseId);
+      merged.push(item);
+    }
+    return merged;
+  });
+  const availableBuffMap = $derived.by(() => {
+    const map = new Map<number, BuffDefinition>();
+    for (const buff of availableBuffs) {
+      map.set(buff.baseId, buff);
+    }
+    return map;
   });
   const selectedBuffs = $derived.by(
     () =>
@@ -182,6 +200,57 @@
         .map((id) => availableBuffs.find((buff) => buff.baseId === id))
         .filter(Boolean) as BuffDefinition[],
   );
+
+  $effect(() => {
+    const ids = monitoredBuffIds;
+    if (ids.length === 0) return;
+    void (async () => {
+      const missing = ids.filter((id) => !buffNames.has(id));
+      if (missing.length === 0) return;
+      const res = await commands.getBuffNames(missing);
+      if (res.status !== "ok") return;
+      const next = new Map(buffNames);
+      for (const item of res.data) {
+        next.set(item.baseId, item);
+      }
+      buffNames = next;
+    })();
+  });
+
+  $effect(() => {
+    const keyword = buffSearch.trim();
+    if (!keyword) {
+      buffSearchResults = [];
+      return;
+    }
+    void (async () => {
+      const res = await commands.searchBuffsByName(keyword, 120);
+      if (res.status !== "ok") return;
+      buffSearchResults = res.data;
+    })();
+  });
+
+  function setOverlaySectionVisibility(
+    key: "showSkillCdGroup" | "showResourceGroup",
+    checked: boolean,
+  ) {
+    updateActiveProfile((profile) => ({
+      ...profile,
+      overlayVisibility: {
+        showSkillCdGroup: profile.overlayVisibility?.showSkillCdGroup ?? true,
+        showResourceGroup: profile.overlayVisibility?.showResourceGroup ?? true,
+        [key]: checked,
+      },
+    }));
+  }
+
+  function toggleOverlaySectionVisibility(
+    key: "showSkillCdGroup" | "showResourceGroup",
+  ) {
+    const current =
+      key === "showSkillCdGroup" ? showSkillCdGroup : showResourceGroup;
+    setOverlaySectionVisibility(key, !current);
+  }
 </script>
 
 <div class="space-y-6">
@@ -233,6 +302,40 @@
       >
         删除方案
       </button>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-border/60 bg-card/40 p-4 space-y-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]">
+    <div>
+      <h2 class="text-base font-semibold text-foreground">Overlay 区域显示</h2>
+      <p class="text-xs text-muted-foreground">
+        可分别控制技能区和资源区是否显示（按方案保存）
+      </p>
+    </div>
+    <div class="space-y-2">
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="px-3 py-2 rounded-lg text-sm font-medium border transition-colors {showSkillCdGroup
+            ? 'bg-primary text-primary-foreground border-primary'
+            : 'bg-muted/30 text-foreground border-border/60 hover:bg-muted/50'}"
+          onclick={() => toggleOverlaySectionVisibility("showSkillCdGroup")}
+        >
+          技能CD区：{showSkillCdGroup ? "显示" : "隐藏"}
+        </button>
+        <button
+          type="button"
+          class="px-3 py-2 rounded-lg text-sm font-medium border transition-colors {showResourceGroup
+            ? 'bg-primary text-primary-foreground border-primary'
+            : 'bg-muted/30 text-foreground border-border/60 hover:bg-muted/50'}"
+          onclick={() => toggleOverlaySectionVisibility("showResourceGroup")}
+        >
+          资源监控区：{showResourceGroup ? "显示" : "隐藏"}
+        </button>
+      </div>
+      <p class="text-xs text-muted-foreground">
+        点击按钮切换显示状态（按方案保存）
+      </p>
     </div>
   </div>
 
@@ -385,7 +488,7 @@
       <div>
         <h2 class="text-base font-semibold text-foreground">Buff 监控</h2>
         <p class="text-xs text-muted-foreground">
-          仅可选择有图标的 Buff，支持搜索名称
+          统一通过 Buff 名称搜索（含有图标/无图标 Buff）
         </p>
       </div>
       <div class="flex items-center gap-3">
@@ -413,24 +516,34 @@
   {#if buffSearch.trim().length > 0}
     <div class="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-3">
       {#each filteredBuffs as buff (buff.baseId)}
+        {@const iconBuff = availableBuffMap.get(buff.baseId)}
         <button
           type="button"
           class="relative group rounded-lg border overflow-hidden transition-colors {isBuffSelected(buff.baseId)
             ? 'border-primary ring-1 ring-primary'
             : 'border-border/60 hover:border-border'}"
-          title={buff.talentName ? `${buff.talentName} - ${buff.name}` : buff.name}
+          title={buff.name}
           onclick={() => toggleBuff(buff.baseId)}
         >
-          <img
-            src={buff.talentSpriteFile
-              ? `/images/talent/${buff.talentSpriteFile}`
-              : `/images/buff/${buff.spriteFile}`}
-            alt={buff.name}
-            class="w-full h-full object-contain aspect-square bg-muted/20"
-          />
-          <div class="absolute inset-x-0 bottom-0 bg-black/50 text-[10px] text-white px-1 py-0.5 truncate">
-            {buff.talentName || buff.name.slice(0, 6)}
-          </div>
+          {#if iconBuff}
+            <img
+              src={iconBuff.talentSpriteFile
+                ? `/images/talent/${iconBuff.talentSpriteFile}`
+                : `/images/buff/${iconBuff.spriteFile}`}
+              alt={iconBuff.name}
+              class="w-full h-full object-contain aspect-square bg-muted/20"
+            />
+            <div class="absolute inset-x-0 bottom-0 bg-black/50 text-[10px] text-white px-1 py-0.5 truncate">
+              {iconBuff.talentName || iconBuff.name.slice(0, 6)}
+            </div>
+          {:else}
+            <div class="w-full h-full aspect-square flex items-center justify-center bg-muted/20 text-[11px] text-foreground p-1 text-center">
+              {buff.name.slice(0, 8)}
+            </div>
+            <div class="absolute right-1 top-1 rounded bg-black/60 px-1 text-[9px] text-white">
+              无图标
+            </div>
+          {/if}
         </button>
       {/each}
     </div>
@@ -443,26 +556,39 @@
     <div class="space-y-2">
       <div class="text-xs text-muted-foreground">已选 Buff</div>
       <div class="flex flex-wrap gap-2">
-        {#each selectedBuffs as buff (buff.baseId)}
-          <button
-            type="button"
-            class="relative rounded-md border border-border/60 overflow-hidden bg-muted/20 size-12 hover:border-border hover:bg-muted/30"
-            title={buff.talentName ? `${buff.talentName} - ${buff.name}` : buff.name}
-            onclick={() => toggleBuff(buff.baseId)}
-          >
-            <img
-              src={buff.talentSpriteFile
-                ? `/images/talent/${buff.talentSpriteFile}`
-                : `/images/buff/${buff.spriteFile}`}
-              alt={buff.name}
-              class="w-full h-full object-contain"
-            />
-            <div class="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] text-white px-1 py-0.5 truncate">
-              {buff.talentName || buff.name.slice(0, 6)}
-            </div>
-          </button>
+        {#each monitoredBuffIds as buffId (buffId)}
+          {@const iconBuff = selectedBuffs.find((buff) => buff.baseId === buffId)}
+          {@const nameInfo = buffNames.get(buffId)}
+          {#if iconBuff}
+            <button
+              type="button"
+              class="relative rounded-md border border-border/60 overflow-hidden bg-muted/20 size-12 hover:border-border hover:bg-muted/30"
+              title={iconBuff.talentName ? `${iconBuff.talentName} - ${iconBuff.name}` : iconBuff.name}
+              onclick={() => toggleBuff(iconBuff.baseId)}
+            >
+              <img
+                src={iconBuff.talentSpriteFile
+                  ? `/images/talent/${iconBuff.talentSpriteFile}`
+                  : `/images/buff/${iconBuff.spriteFile}`}
+                alt={iconBuff.name}
+                class="w-full h-full object-contain"
+              />
+              <div class="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] text-white px-1 py-0.5 truncate">
+                {iconBuff.talentName || iconBuff.name.slice(0, 6)}
+              </div>
+            </button>
+          {:else}
+            <button
+              type="button"
+              class="rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[11px] text-foreground hover:border-border hover:bg-muted/30"
+              title={nameInfo?.name ?? `#${buffId}`}
+              onclick={() => toggleBuff(buffId)}
+            >
+              {nameInfo?.name ?? `#${buffId}`}
+            </button>
+          {/if}
         {/each}
-        {#if selectedBuffs.length === 0}
+        {#if monitoredBuffIds.length === 0}
           <div class="text-xs text-muted-foreground">未选择 Buff</div>
         {/if}
       </div>

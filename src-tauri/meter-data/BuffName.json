@@ -40479,7 +40479,7 @@
     "Id": 2300020,
     "Icon": "",
     "NameDesign": "【豪胆】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_038_3822616777461698100.png"
   },
   {
     "Id": 2300030,
@@ -40533,13 +40533,13 @@
     "Id": 2300070,
     "Icon": "",
     "NameDesign": "【疗愈】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_012_-5469108709149261989.png"
   },
   {
     "Id": 2300080,
     "Icon": "",
     "NameDesign": "【自愈】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_035_-3640730065518343130.png"
   },
   {
     "Id": 2300110,
@@ -40551,7 +40551,7 @@
     "Id": 2300120,
     "Icon": "",
     "NameDesign": "【特攻伤害加持】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_002_-2683515163558247099.png"
   },
   {
     "Id": 2300210,
@@ -40563,13 +40563,13 @@
     "Id": 2300220,
     "Icon": "",
     "NameDesign": "【物理增幅】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_039_736561703056634237.png"
   },
   {
     "Id": 2300310,
     "Icon": "",
     "NameDesign": "【魔法增幅】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_034_3308059903866168760.png"
   },
   {
     "Id": 2300320,
@@ -40581,13 +40581,13 @@
     "Id": 2300410,
     "Icon": "",
     "NameDesign": "【特攻治疗加持】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_023_28547318654036686.png"
   },
   {
     "Id": 2300420,
     "Icon": "",
     "NameDesign": "【专精技能治疗加持】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_042_-8452841273403076765.png"
   },
   {
     "Id": 2300510,
@@ -40611,13 +40611,13 @@
     "Id": 2300620,
     "Icon": "",
     "NameDesign": "【连击】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_016_286742774464243608.png"
   },
   {
     "Id": 2300621,
     "Icon": "",
-    "NameDesign": "————叠层",
-    "SpriteFile": null
+    "NameDesign": "【连击】-————叠层",
+    "SpriteFile": "mod_effect_icon_016_286742774464243608.png"
   },
   {
     "Id": 2300710,
@@ -40641,7 +40641,7 @@
     "Id": 2300820,
     "Icon": "",
     "NameDesign": "【无念】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_045_-8105273659450327230.png"
   },
   {
     "Id": 2300910,
@@ -40851,19 +40851,19 @@
     "Id": 2302020,
     "Icon": "",
     "NameDesign": "【灵巧】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_006_1303933323528162656.png"
   },
   {
     "Id": 2302021,
     "Icon": "",
-    "NameDesign": "————效果",
-    "SpriteFile": null
+    "NameDesign": "【灵巧】-————效果",
+    "SpriteFile": "mod_effect_icon_006_1303933323528162656.png"
   },
   {
     "Id": 2302022,
     "Icon": "",
-    "NameDesign": "————CD",
-    "SpriteFile": null
+    "NameDesign": "【灵巧】-————CD",
+    "SpriteFile": "mod_effect_icon_006_1303933323528162656.png"
   },
   {
     "Id": 2302110,
@@ -40875,13 +40875,13 @@
     "Id": 2302120,
     "Icon": "",
     "NameDesign": "【同调】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_017_-8311557264962928151.png"
   },
   {
     "Id": 2302121,
     "Icon": "",
-    "NameDesign": "————属性buff",
-    "SpriteFile": null
+    "NameDesign": "【同调】-————属性buff",
+    "SpriteFile": "mod_effect_icon_017_-8311557264962928151.png"
   },
   {
     "Id": 2302210,
@@ -40905,13 +40905,13 @@
     "Id": 2302320,
     "Icon": "",
     "NameDesign": "【急救】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_024_-1645131234660411843.png"
   },
   {
     "Id": 2302321,
     "Icon": "",
-    "NameDesign": "————持续回血",
-    "SpriteFile": null
+    "NameDesign": "【急救】-————持续回血",
+    "SpriteFile": "mod_effect_icon_024_-1645131234660411843.png"
   },
   {
     "Id": 2302410,
@@ -40923,13 +40923,13 @@
     "Id": 2302420,
     "Icon": "",
     "NameDesign": "【热枕】",
-    "SpriteFile": null
+    "SpriteFile": "mod_effect_icon_004_6596870771500325069.png"
   },
   {
     "Id": 2302421,
     "Icon": "",
-    "NameDesign": "————效果buff",
-    "SpriteFile": null
+    "NameDesign": "【热枕】-————效果buff",
+    "SpriteFile": "mod_effect_icon_004_6596870771500325069.png"
   },
   {
     "Id": 2400001,

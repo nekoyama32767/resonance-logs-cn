@@ -1,6 +1,7 @@
 import { commands } from "$lib/bindings";
 import { SETTINGS } from "$lib/settings-store";
 import { setClickthrough, toggleClickthrough } from "$lib/utils.svelte";
+import { emit } from "@tauri-apps/api/event";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
 
@@ -101,6 +102,17 @@ export async function registerShortcut(cmdId: string, shortcutKey: string) {
               await commands.togglePauseEncounter();
             } catch (e) {
               console.error("Failed to toggle pause encounter", e);
+            }
+          }
+        });
+        break;
+
+      case "toggleOverlayEdit":
+        await register(shortcutKey, async (event) => {
+          if (event.state === "Pressed") {
+            const overlayWindow = await WebviewWindow.getByLabel("game-overlay");
+            if (overlayWindow) {
+              await emit("overlay-edit-toggle");
             }
           }
         });

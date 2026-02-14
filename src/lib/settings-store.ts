@@ -78,12 +78,66 @@ export const DEFAULT_LIVE_SORT_SETTINGS = {
 
 export type ShortcutSettingId = keyof typeof DEFAULT_SETTINGS.shortcuts;
 
+export type Point = {
+  x: number;
+  y: number;
+};
+
+export type OverlayPositions = {
+  skillCdGroup: Point;
+  resourceGroup: Point;
+  textBuffPanel: Point;
+  specialBuffGroup: Point;
+  iconBuffPositions: Record<number, Point>;
+};
+
+export type OverlaySizes = {
+  skillCdGroupScale: number;
+  resourceGroupScale: number;
+  textBuffPanelScale: number;
+  iconBuffSizes: Record<number, number>;
+};
+
+export type OverlayVisibility = {
+  showSkillCdGroup: boolean;
+  showResourceGroup: boolean;
+};
+
 export type SkillMonitorProfile = {
   name: string;
   selectedClass: string;
   monitoredSkillIds: number[];
   monitoredBuffIds: number[];
+  overlayPositions: OverlayPositions;
+  overlaySizes: OverlaySizes;
+  overlayVisibility: OverlayVisibility;
 };
+
+function createDefaultOverlayPositions(): OverlayPositions {
+  return {
+    skillCdGroup: { x: 40, y: 40 },
+    resourceGroup: { x: 40, y: 170 },
+    textBuffPanel: { x: 360, y: 40 },
+    specialBuffGroup: { x: 360, y: 220 },
+    iconBuffPositions: {},
+  };
+}
+
+function createDefaultOverlaySizes(): OverlaySizes {
+  return {
+    skillCdGroupScale: 1,
+    resourceGroupScale: 1,
+    textBuffPanelScale: 1,
+    iconBuffSizes: {},
+  };
+}
+
+function createDefaultOverlayVisibility(): OverlayVisibility {
+  return {
+    showSkillCdGroup: true,
+    showResourceGroup: true,
+  };
+}
 
 export function createDefaultSkillMonitorProfile(
   name = "默认方案",
@@ -93,6 +147,9 @@ export function createDefaultSkillMonitorProfile(
     selectedClass: "wind_knight",
     monitoredSkillIds: [],
     monitoredBuffIds: [],
+    overlayPositions: createDefaultOverlayPositions(),
+    overlaySizes: createDefaultOverlaySizes(),
+    overlayVisibility: createDefaultOverlayVisibility(),
   };
 }
 
@@ -308,6 +365,7 @@ const DEFAULT_SETTINGS = {
       togglePauseEncounter: "",
     hardReset: "",
     toggleBossHp: "",
+    toggleOverlayEdit: "",
   },
   moduleSync: {
     enabled: false,

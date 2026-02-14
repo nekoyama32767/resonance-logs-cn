@@ -262,6 +262,25 @@ async getAvailableBuffs() : Promise<Result<BuffDefinition[], string>> {
 }
 },
 /**
+ * Searches buffs by name and returns matching entries, including no-icon buffs.
+ */
+async searchBuffsByName(keyword: string, limit: number | null) : Promise<Result<BuffNameInfo[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("search_buffs_by_name", { keyword, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setMonitorAllBuff(monitorAllBuff: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_monitor_all_buff", { monitorAllBuff }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Gets a list of recent encounters.
  * 
  * # Arguments
@@ -838,6 +857,7 @@ maxHp: number | null;
  */
 isDefeated: boolean }
 export type BuffDefinition = { baseId: number; name: string; spriteFile: string; talentName: string | null; talentSpriteFile: string | null; searchKeywords: string[] }
+export type BuffNameInfo = { baseId: number; name: string; hasSpriteFile: boolean }
 /**
  * Detailed API-key check response for UI logging.
  * 
